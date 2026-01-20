@@ -21,10 +21,14 @@ public class SerialControlService {
         }
     }
 
-    public void sendCommand(String cmd) {
+    /**
+     * 发送单个字节（0-20），对应单片机的 compare_value
+     */
+    public void sendByte(int level) {
         if (comPort != null && comPort.isOpen()) {
-            byte[] bytes = cmd.getBytes();
-            comPort.writeBytes(bytes, bytes.length);
+            // 将 int 强制转为 byte
+            byte[] buffer = new byte[]{(byte) level};
+            comPort.writeBytes(buffer, 1);
         }
     }
 

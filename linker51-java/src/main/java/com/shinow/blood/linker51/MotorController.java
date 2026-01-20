@@ -13,11 +13,19 @@ public class MotorController {
     }
 
     /**
-     * 向电机发送命令
+     * 控制电机转速（占空比）
+     *
+     * @param level 0-20 之间的数字
      */
     @GetMapping("/motor")
-    public String controlMotor(@RequestParam String action) {
-        serialService.sendCommand(action);
-        return "指令 " + action + " 已发送至电机";
+    public String controlMotor(@RequestParam int level) {
+        // 安全校验
+        if (level < 0) level = 0;
+        if (level > 20) level = 20;
+
+        // 发送二进制数值
+        serialService.sendByte(level);
+
+        return "电机速度等级已设定为: " + level + " (占空比: " + (level * 5) + "%)";
     }
 }
