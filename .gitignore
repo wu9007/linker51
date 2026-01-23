@@ -1,0 +1,39 @@
+# --- System & IDEs ---
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+.DS_Store
+Thumbs.db
+
+# --- linker51-java ---
+linker51-java/.gradle/
+linker51-java/build/
+linker51-java/out/
+linker51-java/bin/
+linker51-java/HELP.md
+!linker51-java/gradle/wrapper/gradle-wrapper.jar
+
+# --- linker51-mcu ---
+linker51-mcu/output/
+linker51-mcu/listing/
+linker51-mcu/*.obj
+linker51-mcu/*.lst
+linker51-mcu/*.m51
+linker51-mcu/*.lnp
+linker51-mcu/*.uvgui.*
+linker51-mcu/*.uvopt
+linker51-mcu/*.bak
+
+# --- Python (linker51-vision) ---
+# 忽略你创建的虚拟环境文件夹 (51)
+linker51-vision/51/
+
+# --- Global Logic ---
+!**/src/main/**/build/
+!**/src/test/**/build/
+!**/src/main/**/out/
+!**/src/test/**/out/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
