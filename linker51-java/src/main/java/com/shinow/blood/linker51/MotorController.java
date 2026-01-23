@@ -20,7 +20,7 @@ public class MotorController {
     @GetMapping("/motor")
     public String controlMotor(@RequestParam int level) {
         // 安全校验
-        if (level < 0) level = 0;
+        if (level <= 0) level = 0;
         if (level > 20) level = 20;
 
         // 发送二进制数值

@@ -26,10 +26,6 @@ linker51-mcu/*.uvgui.*
 linker51-mcu/*.uvopt
 linker51-mcu/*.bak
 
-# --- Python (linker51-vision) ---
-# 忽略你创建的虚拟环境文件夹 (51)
-linker51-vision/51/
-
 # --- Global Logic ---
 !**/src/main/**/build/
 !**/src/test/**/build/

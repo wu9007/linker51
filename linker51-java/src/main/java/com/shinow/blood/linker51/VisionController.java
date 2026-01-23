@@ -19,12 +19,11 @@ public class VisionController {
     public String handleUpdate(@RequestParam int x, @RequestParam int y) {
         int level;
 
-        if (x < 0) {
+        if (x <= 0) {
             level = 0;
         } else {
-            // 映射计算
-            level = 5 + (int) ((x / 640.0) * 20);
-            // 确保不会超过 25
+            // +5 为硬件死区补偿：确保电机有力气转动，并防止撞到机械边缘（）
+            level = 5 + (int) ((x / 1280.0) * 20);
             level = Math.min(level, 25);
         }
 
