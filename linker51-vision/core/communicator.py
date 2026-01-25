@@ -1,13 +1,17 @@
-import requests
+import serial
 
 class Communicator:
-    def __init__(self, base_url):
-        self.endpoint = f"{base_url}/vision/update"
-
-    def send_coordinates(self, x, y):
+    def __init__(self, port, baudrate):
         try:
-            params = {'x': x, 'y': y}
-            response = requests.get(self.endpoint, params=params, timeout=1)
-            return response.status_code == 200
-        except Exception:
-            return False
+            self.ser = serial.Serial(port, baudrate, timeout=1)
+            print(f"--- 成功连接串口 {port} ---")
+        except Exception as e:
+            print(f"--- 串口连接失败: {e} ---")
+            self.ser = None
+
+    def send_level(self, level):
+        if self.ser and self.ser.is_open:
+            level = int(level)
+            self.ser.write(bytes([level]))
+            return True
+        return False
