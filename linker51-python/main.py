@@ -2,9 +2,13 @@ import config
 import cv2
 from core.communicator import Communicator
 from core.vision_simulator import ImageProcessor
+from core.motor_controller import MotorController
 
 def main():
+    # 初始化串口通信
     communicator = Communicator(config.SERIAL_PORT, config.BAUDRATE)
+    # 初始化电机逻辑控制器
+    motor = MotorController(communicator)
     # 指定测试图片
     img_path = "assets/mid.png"
     processor = ImageProcessor(img_path)
@@ -16,12 +20,7 @@ def main():
         cv2.circle(frame, (x, y), 20, (0, 255, 0), 2)
         cv2.imshow("Debug View", frame)
         if x is not None:
-            level = 5 + int((x / 1280.0) * 20)
-            # 安全校验
-            if level < 5: level = 5
-            if level > 25: level = 25
-            print(f"\n[发送] 坐标: x={x}, y={y} -> Level: {level}")
-            success = communicator.send_level(level)
+            success = motor.update_by_x(x)
             if success:
                 print(" -> 发送成功。")
             else:
