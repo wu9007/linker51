@@ -1,0 +1,40 @@
+import serial
+import time
+
+# --- 配置参数 ---
+SERIAL_PORT = "COM4"
+BAUDRATE = 9600
+HEAD = 0xFE
+
+def send_packet(ser, x_val, y_val):
+    packet = bytes([HEAD, x_val, y_val])
+    ser.write(packet)
+    print(f"发送指令: HEX -> {packet.hex().upper()} | X:{x_val} Y:{y_val}")
+
+def main():
+    try:
+        ser = serial.Serial(SERIAL_PORT, BAUDRATE, timeout=1)
+        print(f"已连接 {SERIAL_PORT}，开始校准...")
+        time.sleep(2) # 等待串口稳定
+
+        send_packet(ser, 22, 5)
+
+        print("等待 2 秒观察动作...")
+        time.sleep(2)
+
+        send_packet(ser, 13, 5)
+
+        print("等待 2 秒观察动作...")
+        time.sleep(2)
+
+        send_packet(ser, 5, 5)
+
+        print("等待 2 秒观察动作...")
+        time.sleep(2)
+    finally:
+        if 'ser' in locals() and ser.is_open:
+            ser.close()
+            print("串口已关闭。")
+
+if __name__ == "__main__":
+    main()

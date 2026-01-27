@@ -5,10 +5,12 @@ typedef unsigned char u8;
 
 sbit Servo_Pin_X = P1^1;
 sbit Servo_Pin_Y = P1^2;
+sbit Servo_Pin_Z = P1^3;
 
 u8 count = 0;
 u8 target_x = 5;
 u8 target_y = 5;
+u8 target_z = 5;
 
 void uart_init(u8 baud) {
     SCON = 0x50;
@@ -42,17 +44,9 @@ void timer0_isr() interrupt 1 {
         count = 0;
     }
 
-    if(count < target_x){
-        Servo_Pin_X = 1;
-    }else {
-        Servo_Pin_X = 0;
-    }
-
-    if(count < target_y){
-        Servo_Pin_Y = 1;
-    }else {
-        Servo_Pin_Y = 0;
-    }
+    Servo_Pin_X = (count < target_x) ? 1 : 0;
+    Servo_Pin_Y = (count < target_y) ? 1 : 0;
+    Servo_Pin_Z = (count < target_z) ? 1 : 0;
 }
 
 void uart() interrupt 4{
@@ -67,15 +61,20 @@ void uart() interrupt 4{
 		        state = 1;
 		    }
 		} else if(state == 1){
-		    if (receive_data < 5) receive_data = 5;
+            if (receive_data < 5) receive_data = 5;
             if (receive_data > 22) receive_data = 22;
 		    target_x = receive_data;
 		    state = 2;
 		} else if(state == 2){
-		    if (receive_data < 5) receive_data = 5;
+            if (receive_data < 5) receive_data = 5;
             if (receive_data > 22) receive_data = 22;
 		    target_y = receive_data;
-		    state = 0;
+		    state = 3;
+		} else if(state == 3){
+            if (receive_data < 5) receive_data = 5;
+            if (receive_data > 22) receive_data = 22;
+            target_z = receive_data;
+            state = 0;
 		}
 
 		SBUF = receive_data;

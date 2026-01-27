@@ -1,0 +1,71 @@
+import config
+import numpy as np
+from ikpy.chain import Chain
+from ikpy.link import OriginLink, URDFLink
+
+class ServoController:
+    def __init__(self, communicator):
+        self.communicator = communicator
+        # 机械臂应该是一条沿 Y 轴平躺在 $Z=0.05$ 平面上的直线
+        self.arm_chain = Chain(name='arm_3dof', links=[
+            OriginLink(),
+            URDFLink(
+                name="base",
+                bounds=(0, np.pi),
+                origin_translation=np.array([0, 0, 0.05]), # 底座高 5cm
+                origin_orientation=np.array([0, 0, 0]),
+                rotation=np.array([0, 0, 1])               # 绕 Z 轴左右转
+            ),
+            URDFLink(
+                name="shoulder",
+                bounds=(0, np.pi),
+                origin_translation=np.array([0, 0, 0]),
+                origin_orientation=np.array([0, 0, 0]),
+                rotation=np.array([0, 1, 0])               # 绕 Y 轴俯仰
+            ),
+            URDFLink(
+                name="elbow",
+                bounds=(0, np.pi),
+                origin_translation=np.array([0, 0.1, 0]),  # 大臂长 10cm，向前延伸
+                origin_orientation=np.array([0, 0, 0]),
+                rotation=np.array([0, 1, 0])               # 绕 Y 轴俯仰
+            ),
+            URDFLink(
+                name="tip",
+                bounds=(0, 0.001),
+                origin_translation=np.array([0, 0.1, 0]),  # 小臂长 10cm，向前延伸
+                origin_orientation=np.array([0, 0, 0]),
+                rotation=np.array([0, 0, 0])
+            ),
+        ])
+        # 记录当前活动的 mask，避免每次调用传参报错
+        self.active_mask = [False, True, True, True, False]
+        self.min_pos = 5   # 对应舵机约 0 度
+        self.max_pos = 22  # 对应舵机约 180 度 (安全上限)
+
+    def _angle_to_level(self, rad):
+        """将 ikpy 的弧度转为 5-22 的 level"""
+        angle = np.degrees(rad)
+        span = self.max_pos - self.min_pos
+        level = self.min_pos + (angle / 180.0) * span
+        return int(max(self.min_pos, min(self.max_pos, round(level))))
+
+    def track_target(self, target_xyz):
+        """target_xyz: [x, y, z] 的列表，例如 [0.1, 0.05, 0.1]"""
+        # 解算角度
+        angles = self.arm_chain.inverse_kinematics(target_xyz)
+
+        # 映射到 Level (跳过 angles[0] 的 OriginLink)
+        lvl_x = self._angle_to_level(angles[1])
+        lvl_y = self._angle_to_level(angles[2])
+        lvl_z = self._angle_to_level(angles[3])
+
+        # 发送符合单片机新状态机的数据包
+        packet = bytes([0xFE, lvl_x, lvl_y, lvl_z]) #
+        print(f"[IK] Angles: {np.degrees(angles[1:4])} -> Levels: {lvl_x, lvl_y, lvl_z}")
+        return self.communicator.send_packet(packet)
+
+    def stop(self):
+        # 复位
+        packet = bytes([0xFE, self.min_pos, self.min_pos, self.min_pos])
+        return self.communicator.send_packet(packet)
