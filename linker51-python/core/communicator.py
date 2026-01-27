@@ -15,3 +15,10 @@ class Communicator:
             self.ser.write(bytes([level]))
             return True
         return False
+
+    def send_packet(self, packet):
+        if self.ser and self.ser.is_open:
+            self.ser.write(packet)
+            print(f"Sent Packet: {packet.hex().upper()}")
+            return True
+        return False
