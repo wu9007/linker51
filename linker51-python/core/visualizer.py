@@ -1,25 +1,28 @@
+import matplotlib
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
 
-def plot_arm(servo_controller, target_xyz, angles):
-    plt.ioff()
+# 在全局初始化交互模式
+plt.ion()
+fig = plt.figure(figsize=(10, 8))
+ax = fig.add_subplot(111, projection='3d')
 
-    fig = plt.figure(figsize=(10, 8))
-    ax = fig.add_subplot(111, projection='3d')
+def plot_arm_animated(controller, target, angles, title="Robot Arm Tracking"):
+    """标准动画刷新模式"""
+    ax.clear()  # 清除上一帧内容
 
-    # 绘制机械臂
-    servo_controller.arm_chain.plot(angles, ax, target=target_xyz)
+    # 使用 ikpy 自带的绘图功能或你自定义的逻辑
+    controller.arm_chain.plot(angles, ax, target=target)
 
-    # 设置坐标轴范围 (单位：米)
-    limit = max(0.3, np.max(np.abs(target_xyz)) + 0.05)
-    ax.set_xlim(-limit, limit)
-    ax.set_ylim(-0.05, limit)
-    ax.set_zlim(0, limit)
+    # 设置固定的坐标轴范围，防止窗口晃动
+    ax.set_xlim(-0.3, 0.3)
+    ax.set_ylim(-0.1, 0.4)
+    ax.set_zlim(0, 0.4)
+    ax.set_title(title)
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
 
-    ax.set_xlabel('X (Left/Right)')
-    ax.set_ylabel('Y (Forward/Back)')
-    ax.set_zlabel('Z (Height)')
-    plt.title(f"Arm Sim - Target: {np.around(target_xyz, 3)}")
-
-    print("--- 模拟窗口已弹出，请查看 3D 姿态。关闭窗口后程序继续 ---")
-    plt.show()
+    plt.draw()      # 重新渲染画布
+    plt.pause(0.001) # 暂停极短时间让 GUI 线程处理渲染

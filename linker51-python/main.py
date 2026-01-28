@@ -1,6 +1,7 @@
 import config
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 from core.communicator import Communicator
 from core.vision_simulator import ImageProcessor
 from core.servo_controller import ServoController
@@ -25,7 +26,7 @@ def main():
     dist_coeffs = np.zeros((4, 1)) # 假设没有镜头畸变
 
     # 指定测试图片
-    img_path = "assets/mid.png"
+    img_path = "assets/right.png"
     processor = ImageProcessor(img_path)
     print(f"--- 正在分析测试图片: {img_path} ---")
     try:
@@ -47,14 +48,25 @@ def main():
             target_z = curr_z - rel_y
             print(f"目标相对于机器人的位置: X={target_x:.3f}m, Y={target_y:.3f}m, Z(深度)={target_z:.3f}m")
 
+            target_xyz = [0.10, 0.05, 0.0]
+            # target_xyz = [-0.2, 0.0, 0.15]
+            # target_xyz = [0.0, 0.2, 0.15]
+            # target_xyz = [0.2, 0.0, 0.15]
+            # target_xyz = [0.0, 0.0, 0.35]
             # target_xyz = [target_x, target_y, target_z]
-            target_xyz = [0.0, 0.15, 0.15]
             success = servo.track_target(target_xyz)
             if success:
                 print(" -> 发送成功。")
             else:
                 print(" -> 发送失败。")
-        cv2.waitKey(0)
+
+        fig = plt.gcf()
+        print("\n[提示] 追踪任务结束。请手动关闭 3D 图形窗口以退出程序...")
+        # 只要窗口还存在，就保持运行
+        while plt.fignum_exists(fig.number):
+            plt.pause(0.1)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
 
         servo.stop()
     except KeyboardInterrupt:
