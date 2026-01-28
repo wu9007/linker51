@@ -11,28 +11,55 @@ class ImageProcessor:
     def get_target_corners(self):
         frame = cv2.imread(self.image_path)
         if frame is None:
-            return None, None, None
+            return None, None
 
-        print(f"图片维度: {frame.shape} | 数据类型: {frame.dtype}")
+        # 打印新图片的真实规格
+        h, w, c = frame.shape
+        print(f"--- 图片规格: 宽 {w}px, 高 {h}px, 通道 {c} ---")
 
-        h, w, _ = frame.shape
+        # 中值滤波去噪，防止纹理干扰
+        blurred = cv2.medianBlur(frame, 5)
+        hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
 
-        # 转换颜色空间到 HSV
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        # 定义黄色的 HSV 范围
+        lower_yellow = np.array([20, 100, 100])
+        upper_yellow = np.array([40, 255, 255])
+        mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
 
-        # 把图像中所有符合红色的区域变白，不符合的变黑
-        lower_red = (170, 70, 70)
-        upper_red = (180, 255, 255)
-        mask = cv2.inRange(hsv, lower_red, upper_red)
+        # 去除背景杂点，填补球体内的阴影
+        kernel = kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
 
-        # 它在刚才的黑白图中“描边”
-        # RETR_EXTERNAL：只找最外层的轮廓，不管物体里面的孔洞。
-        # CHAIN_APPROX_SIMPLE：把弯曲的边压缩成几个点，节省内存。
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
         if contours:
+            # 找到面积最大的黄色物体
             c = max(contours, key=cv2.contourArea)
-            # 获取最小外接矩形的四个顶点
-            rect = cv2.minAreaRect(c)
-            box = cv2.boxPoints(rect)
-            return np.array(box, dtype=np.float32), frame
+
+            # 过滤掉过小的杂质区域
+            if cv2.contourArea(c) < 100:
+                return None, frame
+
+            # 获取最小外接圆
+            (x, y), radius = cv2.minEnclosingCircle(c)
+            center = (int(x), int(y))
+            radius = int(radius)
+
+            # 给 solvePnP 四个点，模拟一个以圆心为中心的“虚拟正方形”
+            r = radius
+            box = np.array([
+                [x - r, y - r],
+                [x + r, y - r],
+                [x + r, y + r],
+                [x - r, y + r]
+            ], dtype=np.float32)
+
+            # 在原图上画出绿色边框识别结果
+            cv2.circle(frame, center, radius, (0, 255, 0), 2)
+            # 在原图上画出红色圆心识别结果
+            cv2.circle(frame, center, 2, (0, 0, 255), 3)
+
+            return box, frame
+
         return None, frame

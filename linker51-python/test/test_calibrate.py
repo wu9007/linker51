@@ -27,6 +27,8 @@ def main():
 
         print("等待 2 秒观察动作...")
         time.sleep(2)
+
+        send_packet(ser, 13, 13)
     finally:
         if 'ser' in locals() and ser.is_open:
             ser.close()

@@ -1,9 +1,8 @@
 import config
 import cv2
-import numpy as np
+import time
 import matplotlib.pyplot as plt
 from core.communicator import Communicator
-from core.vision_simulator import ImageProcessor
 from core.servo_controller import ServoController
 
 def main():
@@ -12,61 +11,51 @@ def main():
     # 初始化舵机控制器
     servo = ServoController(communicator)
 
-    # 假设图片中的红块是一个 4cm x 4cm 的正方形
-    obj_points = np.array([
-        [-0.02, -0.02, 0],
-        [ 0.02, -0.02, 0],
-        [ 0.02,  0.02, 0],
-        [-0.02,  0.02, 0]
-    ], dtype=np.float32)
-    # 摄像头内参 (根据你的分辨率 1536x860 估算)
-    f = 1000
-    cx, cy = 1536/2, 860/2
-    camera_matrix = np.array([[f, 0, cx], [0, f, cy], [0, 0, 1]], dtype=np.float32)
-    dist_coeffs = np.zeros((4, 1)) # 假设没有镜头畸变
+    # 初始位
+    home_pos = servo.arm_chain.forward_kinematics(servo.current_angles)[:3, 3]
+    home_x, home_y, home_z = home_pos
+    print(f"--- 初始锚点位置: X={home_x:.3f}, Y={home_y:.3f}, Z={home_z:.3f} ---")
 
-    # 指定测试图片
-    img_path = "assets/right.png"
-    processor = ImageProcessor(img_path)
-    print(f"--- 正在分析测试图片: {img_path} ---")
+    # 运动目标点，测试用
+    test_targets = [
+        [-0.20,  0.00, -0.20],  # 对应目标 [-0.2, 0.0, 0.15]
+        [ 0.00,  0.00,  0.00],  # 对应目标 [0.0, 0.2, 0.15]
+        [ 0.20,  0.00, -0.20],  # 对应目标 [0.2, 0.0, 0.15]
+        [ 0.00, -0.20, -0.20],  # 对应目标 [0.0, 0.0, 0.35]
+        [ 0.10,  0.15, -0.15]   # 对应目标 [0.10, 0.05, 0.0]
+    ]
+
     try:
-        # 从图片获取“模拟”坐标
-        corners_2d, frame = processor.get_target_corners()
-        if corners_2d is not None:
+        for i, rel_xyz in enumerate(test_targets):
+            print(f"\n[点位 {i+1}] 正在移向目标: {rel_xyz}")
             # 解算 PnP，tvec 就是物体相对于相机的 [x, y, z] 偏移 (单位: 米)
-            _, rvec, tvec = cv2.solvePnP(obj_points, corners_2d, camera_matrix, dist_coeffs)
-
-            rel_x, rel_y, rel_z = tvec.flatten()
+            rel_x, rel_y, rel_z = rel_xyz
             print(f"目标相对于相机位置: X={rel_x:.3f}m, Y={rel_y:.3f}m, Z(深度)={rel_z:.3f}m")
 
-            # 转换到机器人坐标系并移动，先通过当前关节角度算出相机（末端）现在的绝对位置（假设当前关节角度是 servo.current_angles）
-            current_pos = servo.arm_chain.forward_kinematics(servo.current_angles)[:3, 3]
-            curr_x, curr_y, curr_z = current_pos
-            # 在当前位置基础上，叠加相机的观测位移
-            target_x = curr_x + rel_x
-            target_y = curr_y + rel_z
-            target_z = curr_z - rel_y
+            # 在初始位置基础上，叠加相机的观测位移
+            target_x = home_x + rel_x
+            target_y = home_y + rel_z
+            target_z = home_z - rel_y
             print(f"目标相对于机器人的位置: X={target_x:.3f}m, Y={target_y:.3f}m, Z(深度)={target_z:.3f}m")
 
-            target_xyz = [0.10, 0.05, 0.0]
+            # target_xyz = [0.10, 0.05, 0.0]
             # target_xyz = [-0.2, 0.0, 0.15]
             # target_xyz = [0.0, 0.2, 0.15]
             # target_xyz = [0.2, 0.0, 0.15]
             # target_xyz = [0.0, 0.0, 0.35]
-            # target_xyz = [target_x, target_y, target_z]
+            target_xyz = [target_x, target_y, target_z]
             success = servo.track_target(target_xyz)
             if success:
                 print(" -> 发送成功。")
             else:
                 print(" -> 发送失败。")
+            time.sleep(0.5)
 
         fig = plt.gcf()
         print("\n[提示] 追踪任务结束。请手动关闭 3D 图形窗口以退出程序...")
         # 只要窗口还存在，就保持运行
         while plt.fignum_exists(fig.number):
             plt.pause(0.1)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
 
         servo.stop()
     except KeyboardInterrupt:
