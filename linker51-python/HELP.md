@@ -13,3 +13,8 @@ conda activate linker51
 ```shell
 pip install -r requirements.txt
 ```
+
+### MAC查看串口端口
+```shell
+ls /dev/tty.usb*
+```

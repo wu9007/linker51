@@ -61,7 +61,7 @@ class ServoController:
         lvl_z = self._angle_to_level(angles[3])
 
         # 发送符合单片机新状态机的数据包
-        packet = bytes([0xFE, lvl_x, lvl_y, lvl_z]) #
+        packet = bytes([config.PACKET_HEAD, lvl_x, lvl_y, lvl_z]) #
         print(f"[IK] Angles: {np.degrees(angles[1:4])} -> Levels: {lvl_x, lvl_y, lvl_z}")
         return self.communicator.send_packet(packet)
 
