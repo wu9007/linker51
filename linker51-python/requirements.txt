@@ -3,3 +3,4 @@ requests
 numpy
 pyserial
 ikpy
+matplotlib
