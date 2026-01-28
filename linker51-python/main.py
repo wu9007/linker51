@@ -47,7 +47,8 @@ def main():
             target_z = curr_z - rel_y
             print(f"目标相对于机器人的位置: X={target_x:.3f}m, Y={target_y:.3f}m, Z(深度)={target_z:.3f}m")
 
-            target_xyz = [target_x, target_y, target_z]
+            # target_xyz = [target_x, target_y, target_z]
+            target_xyz = [0.0, 0.15, 0.15]
             success = servo.track_target(target_xyz)
             if success:
                 print(" -> 发送成功。")

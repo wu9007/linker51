@@ -22,14 +22,14 @@ class ServoController:
                 bounds=(0, np.pi),
                 origin_translation=np.array([0, 0, 0]),     # 肩部舵机在底座顶部
                 origin_orientation=np.array([0, 0, 0]),
-                rotation=np.array([0, 1, 0])               # 绕 Y 轴俯仰
+                rotation=np.array([1, 0, 0])               # 绕 X 轴俯仰
             ),
             URDFLink(
                 name="elbow",
                 bounds=(0, np.pi),
                 origin_translation=np.array([0, 0, 0.1]), # 大臂长度 5cm，向上延伸
                 origin_orientation=np.array([0, 0, 0]),
-                rotation=np.array([0, 1, 0])               # 绕 Y 轴俯仰
+                rotation=np.array([1, 0, 0])               # 绕 X 轴俯仰
             ),
             URDFLink(
                 name="tip",
@@ -57,7 +57,6 @@ class ServoController:
         return int(max(self.min_pos, min(self.max_pos, round(level))))
 
     def track_target(self, target_xyz):
-        """target_xyz: [x, y, z] 的列表，例如 [0.1, 0.05, 0.1]"""
         # 解算角度
         angles = self.arm_chain.inverse_kinematics(
             target_xyz,

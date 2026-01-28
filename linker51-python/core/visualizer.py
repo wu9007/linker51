@@ -2,9 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def plot_arm(servo_controller, target_xyz, angles):
-    """
-    在3D空间绘制机械臂姿态和目标点
-    """
+    plt.ioff()
+
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection='3d')
 
@@ -12,10 +11,9 @@ def plot_arm(servo_controller, target_xyz, angles):
     servo_controller.arm_chain.plot(angles, ax, target=target_xyz)
 
     # 设置坐标轴范围 (单位：米)
-    # 手臂总长约 0.15m，所以设置到 0.25m 左右比较合适
-    limit = 0.25
+    limit = max(0.3, np.max(np.abs(target_xyz)) + 0.05)
     ax.set_xlim(-limit, limit)
-    ax.set_ylim(-0.05, limit + 0.05)
+    ax.set_ylim(-0.05, limit)
     ax.set_zlim(0, limit)
 
     ax.set_xlabel('X (Left/Right)')
