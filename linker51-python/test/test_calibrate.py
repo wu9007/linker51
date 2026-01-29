@@ -1,38 +1,43 @@
-import config
-import serial
 import time
 
-def send_packet(ser, x_val, y_val):
-    packet = bytes([config.PACKET_HEAD, x_val, y_val, 5])
+import serial
+
+import config
+
+
+def send_packet(ser, x_val, y_val, z_val):
+    packet = bytes([config.PACKET_HEAD, x_val, y_val, z_val])
     ser.write(packet)
     print(f"发送指令: HEX -> {packet.hex().upper()} | X:{x_val} Y:{y_val}")
+
 
 def main():
     try:
         ser = serial.Serial(config.SERIAL_PORT, config.BAUDRATE, timeout=1)
         print(f"已连接 {config.SERIAL_PORT}，开始校准...")
-        time.sleep(2) # 等待串口稳定
+        time.sleep(2)  # 等待串口稳定
 
-        send_packet(ser, 22, 22)
-
-        print("等待 2 秒观察动作...")
-        time.sleep(2)
-
-        send_packet(ser, 13, 13)
+        send_packet(ser, 22, 22, 22)
 
         print("等待 2 秒观察动作...")
         time.sleep(2)
 
-        send_packet(ser, 5, 5)
+        send_packet(ser, 13, 13, 13)
 
         print("等待 2 秒观察动作...")
         time.sleep(2)
 
-        send_packet(ser, 13, 13)
+        send_packet(ser, 5, 5, 5)
+
+        print("等待 2 秒观察动作...")
+        time.sleep(2)
+
+        send_packet(ser, 13, 13, 13)
     finally:
         if 'ser' in locals() and ser.is_open:
             ser.close()
             print("串口已关闭。")
+
 
 if __name__ == "__main__":
     main()

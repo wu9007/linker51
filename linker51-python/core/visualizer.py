@@ -1,12 +1,13 @@
 import matplotlib
+
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
 # 在全局初始化交互模式
 plt.ion()
 fig = plt.figure(figsize=(10, 8))
 ax = fig.add_subplot(111, projection='3d')
+
 
 def plot_arm_animated(controller, target, angles, title="Robot Arm Tracking"):
     """标准动画刷新模式"""
@@ -24,5 +25,5 @@ def plot_arm_animated(controller, target, angles, title="Robot Arm Tracking"):
     ax.set_ylabel("Y")
     ax.set_zlabel("Z")
 
-    plt.draw()      # 重新渲染画布
-    plt.pause(0.001) # 暂停极短时间让 GUI 线程处理渲染
+    plt.draw()  # 重新渲染画布
+    plt.pause(0.001)  # 暂停极短时间让 GUI 线程处理渲染
