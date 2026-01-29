@@ -27,7 +27,7 @@ class ImageProcessor:
         mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
 
         # 去除背景杂点，填补球体内的阴影
-        kernel = kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
 
