@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from core.vision_simulator import ImageProcessor
+from test.vision_simulator import ImageProcessor
 
 def test_single_image():
     img_path = "../assets/1.jpg"
