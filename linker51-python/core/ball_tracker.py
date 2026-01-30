@@ -1,8 +1,15 @@
+import time
+
 import cv2
 import numpy as np
 
+import config
+from core.communicator import Communicator
+from core.servo_controller import ServoController
+
+
 class BallTracker:
-    def __init__(self, params_path, ball_radius):
+    def __init__(self, params_path, hand_eye_path, ball_radius):
         """
         :param params_path: 标定文件路径 (.npz)
         :param ball_radius: 小球的真实半径 (单位: 米)
@@ -19,9 +26,22 @@ class BallTracker:
         self.ball_radius = ball_radius
         self.ball_diameter = ball_radius * 2
 
-        # 定义黄色的 HSV 范围
+        # 加载手眼变换矩阵
+        self.M = np.load(hand_eye_path)
+
+        # 颜色范围配置 (黄色)
         self.color_lower = np.array([20, 100, 100])
         self.color_upper = np.array([40, 255, 255])
+
+    def camera_to_robot(self, x_c, y_c, z_c):
+        """
+        相机坐标系 -> 机械臂坐标系
+        """
+        if self.M is None:
+            return None
+        p_cam = np.array([x_c, y_c, z_c, 1.0])
+        p_robot = self.M @ p_cam
+        return p_robot[0], p_robot[1], p_robot[2]
 
     def get_ball_coords(self, frame):
         """
@@ -58,28 +78,38 @@ class BallTracker:
                 # 可视化绘制
                 cv2.circle(frame, (int(u), int(v)), int(radius_pixel), (0, 255, 255), 2)
                 cv2.putText(frame, f"X:{x:.2f} Y:{y:.2f} Z:{z:.2f}m",
-                            (int(u-radius_pixel), int(v-radius_pixel-10)),
+                            (int(u - radius_pixel), int(v - radius_pixel - 10)),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
                 return True, x, y, z, frame
 
         return False, 0, 0, 0, frame
 
+
 # --- 使用示例 ---
 if __name__ == "__main__":
-    tracker = BallTracker("../test/camera_params.npz", ball_radius=0.006)
-    cap = cv2.VideoCapture(0)
+    tracker = BallTracker("../calibrate_data/camera_params.npz",
+                          "../calibrate_data/hand_eye_matrix.npy",
+                          ball_radius=0.006)
+    img_path = "../assets/1FB70894-64C5-4C27-92D7-9A70BC4055B2.jpeg"
+    frame = cv2.imread(img_path)
 
-    while True:
-        ret, frame = cap.read()
-        if not ret: break
+    communicator = Communicator(config.SERIAL_PORT, config.BAUDRATE)
+    servo = ServoController(communicator)
 
-        found, bx, by, bz, res_frame = tracker.get_ball_coords(frame)
+    if frame is not None:
+        found, cx, cy, cz, res_frame = tracker.get_ball_coords(frame)
         if found:
-            print(f"检测到小球！相机坐标: X={bx:.3f}, Y={by:.3f}, Z={bz:.3f}")
-
-        cv2.imshow("Ball Tracking", res_frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'): break
-
-    cap.release()
+            print(f"检测到小球！相机坐标: X={cx:.3f}, Y={cy:.3f}, Z={cz:.3f}")
+            robot_pos = tracker.camera_to_robot(cx, cy, cz)
+            if robot_pos:
+                print(f"目标在机械臂坐标系位置: {robot_pos}")
+                cv2.imshow("Ball Tracking", res_frame)
+                cv2.waitKey(0)
+                servo.track_target(robot_pos)
+                cv2.waitKey(0)
+        else:
+            print("未能从小球图片中提取到黄色目标，请检查HSV阈值。")
+    else:
+        print(f"找不到图片: {img_path}")
     cv2.destroyAllWindows()

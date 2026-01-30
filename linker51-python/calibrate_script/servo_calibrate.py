@@ -10,7 +10,7 @@ def send_packet(ser, x_val, y_val, z_val):
     ser.write(packet)
     print(f"发送指令: HEX -> {packet.hex().upper()} | X:{x_val} Y:{y_val}")
 
-
+# 舵机角度校验
 def main():
     try:
         ser = serial.Serial(config.SERIAL_PORT, config.BAUDRATE, timeout=1)

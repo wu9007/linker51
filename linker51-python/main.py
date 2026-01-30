@@ -3,7 +3,7 @@ import time
 import cv2
 import matplotlib.pyplot as plt
 
-import config
+import calibrate_data
 from core.communicator import Communicator
 from core.servo_controller import ServoController
 

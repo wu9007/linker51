@@ -1,11 +1,13 @@
-import cv2
-import numpy as np
 import glob
 import os
 
+import cv2
+import numpy as np
+
+# 相机标定（10x7棋盘格）
 # ----------------- 配置区 -----------------
 # 棋盘格内角点数量 (横向点数, 纵向点数)
-# 注意：是“内角点”，即格子交叉的地方。如果格子是 9x6，角点就是 8x5
+# 注意：是“内角点”，即格子交叉的地方。如果格子是 10x7，角点就是 9x6
 CHECKERBOARD = (9, 6)
 # 方格边长（单位：米。例如 25mm 填 0.025）
 SQUARE_SIZE = 0.024
@@ -18,8 +20,8 @@ objp = np.zeros((CHECKERBOARD[0] * CHECKERBOARD[1], 3), np.float32)
 objp[:, :2] = np.mgrid[0:CHECKERBOARD[0], 0:CHECKERBOARD[1]].T.reshape(-1, 2)
 objp *= SQUARE_SIZE
 
-objpoints = [] # 真实世界的 3D 点
-imgpoints = [] # 图像平面的 2D 点
+objpoints = []  # 真实世界的 3D 点
+imgpoints = []  # 图像平面的 2D 点
 
 # 获取文件夹下所有图片
 images = glob.glob(os.path.join(IMAGE_FOLDER, '*.jpeg'))
@@ -62,12 +64,12 @@ else:
 
     if ret:
         # 保存结果
-        np.savez("camera_params.npz", mtx=mtx, dist=dist)
-        print("\n" + "="*30)
+        np.savez("../calibrate_data/camera_params.npz", mtx=mtx, dist=dist)
+        print("\n" + "=" * 30)
         print("【标定成功！】")
         print("内参矩阵 (Camera Matrix):\n", mtx)
         print("\n畸变系数 (Dist Coefficients):\n", dist.flatten())
-        print("="*30)
+        print("=" * 30)
         print("\n结果已保存至 camera_params.npz")
 
         # 计算重投影误差（越小越准，通常应 < 0.5 像素）
@@ -76,4 +78,4 @@ else:
             imgpoints2, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], mtx, dist)
             error = cv2.norm(imgpoints[i], imgpoints2, cv2.norm_L2) / len(imgpoints2)
             mean_error += error
-        print(f"平均重投影误差: {mean_error/len(objpoints):.4f} 像素")
+        print(f"平均重投影误差: {mean_error / len(objpoints):.4f} 像素")
