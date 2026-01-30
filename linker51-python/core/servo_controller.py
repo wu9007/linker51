@@ -20,21 +20,21 @@ class ServoController:
             URDFLink(
                 name="base",
                 bounds=(0, np.pi),
-                origin_translation=np.array([0, 0, 0.05]),
+                origin_translation=np.array([0, 0, 0.045]),
                 origin_orientation=np.array([0, 0, -np.pi / 2]),
                 rotation=np.array([0, 0, 1])
             ),
             URDFLink(
                 name="shoulder",
                 bounds=(0, np.pi),
-                origin_translation=np.array([0, 0, 0.1]),
+                origin_translation=np.array([0, 0, 0.14]),
                 origin_orientation=np.array([-np.pi / 2, 0, 0]),
                 rotation=np.array([1, 0, 0])
             ),
             URDFLink(
                 name="elbow",
                 bounds=(0, np.pi),
-                origin_translation=np.array([0, 0.1, 0]),
+                origin_translation=np.array([0, 0.55, 0]),
                 origin_orientation=np.array([-np.pi / 2, 0, 0]),
                 rotation=np.array([1, 0, 0])
             ),

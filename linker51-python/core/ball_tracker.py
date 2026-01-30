@@ -27,7 +27,11 @@ class BallTracker:
         self.ball_diameter = ball_radius * 2
 
         # 加载手眼变换矩阵
-        self.M = np.load(hand_eye_path)
+        if hand_eye_path is not None:
+            self.M = np.load(hand_eye_path)
+        else:
+            self.M = None
+            print("注意：未加载手眼矩阵，camera_to_robot 功能将不可用")
 
         # 颜色范围配置 (黄色)
         self.color_lower = np.array([20, 100, 100])
@@ -104,8 +108,6 @@ if __name__ == "__main__":
             robot_pos = tracker.camera_to_robot(cx, cy, cz)
             if robot_pos:
                 print(f"目标在机械臂坐标系位置: {robot_pos}")
-                cv2.imshow("Ball Tracking", res_frame)
-                cv2.waitKey(0)
                 servo.track_target(robot_pos)
                 cv2.waitKey(0)
         else:

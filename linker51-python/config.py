@@ -1,5 +1,5 @@
 # SERIAL_PORT = "COM4"
-SERIAL_PORT = "/dev/tty.usbserial-1110"
+SERIAL_PORT = "/dev/tty.usbserial-1130"
 BAUDRATE=9600
 
 SCREEN_WIDTH=1536
