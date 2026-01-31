@@ -68,6 +68,7 @@ def main():
         if moved:
             servo.track_target([curr_rx, curr_ry, curr_rz])
             print(f"机械臂移动至: X={curr_rx:.3f}, Y={curr_ry:.3f}, Z={curr_rz:.3f}")
+            time.sleep(0.2)
 
         # --- 保存数据点 ---
         elif key == ord(' '):
