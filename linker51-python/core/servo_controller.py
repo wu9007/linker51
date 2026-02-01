@@ -1,59 +1,29 @@
 import time
 
 import numpy as np
-from ikpy.chain import Chain
-from ikpy.link import OriginLink, URDFLink
-
 import config
-from core.visualizer import plot_arm_animated
+from core.robot_config import RobotArmConfig
 
 
 class ServoController:
-    def __init__(self, communicator):
+    def __init__(self, communicator, robot_config: RobotArmConfig = None):
         """
         初始化舵机控制器
         :param communicator: 串口通讯实例
         """
         self.communicator = communicator
-        self.arm_chain = Chain(name='bottle_arm', links=[
-            OriginLink(),
-            URDFLink(
-                name="base",
-                bounds=(0, np.pi),
-                origin_translation=np.array([0, 0, 0.045]),
-                origin_orientation=np.array([0, 0, -np.pi / 2]),
-                rotation=np.array([0, 0, 1])
-            ),
-            URDFLink(
-                name="shoulder",
-                bounds=(0, np.pi),
-                origin_translation=np.array([0, 0, 0.12]),
-                origin_orientation=np.array([-np.pi / 2, 0, 0]),
-                rotation=np.array([1, 0, 0])
-            ),
-            URDFLink(
-                name="elbow",
-                bounds=(0, np.pi),
-                origin_translation=np.array([0, 0.055, 0]),
-                origin_orientation=np.array([-np.pi / 2, 0, 0]),
-                rotation=np.array([1, 0, 0])
-            ),
-            URDFLink(
-                name="tip",
-                bounds=(0, 0.001),
-                origin_translation=np.array([0, 0.12, 0]),
-                origin_orientation=np.array([0, 0, 0]),
-                rotation=np.array([0, 0, 0])
-            ),
-        ])
-
+        # 构建机械臂模型
+        if robot_config is None:
+            self.config = RobotArmConfig()
+        else:
+            self.config = robot_config
+        self.arm_chain = self.config.build_chain()
         # 设置初始角度
-        self.home_angles = [0, np.pi / 2, np.pi / 2, np.pi / 2, 0]
+        self.home_angles = list(self.config.home_angles)
         self.current_angles = list(self.home_angles)
-
-        self.active_mask = [False, True, True, True, False]
-        self.min_pos = 5
-        self.max_pos = 22
+        # 舵机映射范围
+        self.min_pos = self.config.servo_min_level
+        self.max_pos = self.config.servo_max_level
 
     def track_target(self, target_xyz):
         """
@@ -69,8 +39,10 @@ class ServoController:
         # 生成角度插值路径（让动画变丝滑）
         path = np.linspace(self.current_angles, target_angles, num=10)
         for step_angles in path:
-            plot_arm_animated(self, target_xyz, step_angles)
+            # 发送硬件指令
             self._send_angles_to_servo(step_angles)
+            # 把控制权交还给调用者，并带出当前状态
+            yield step_angles
             # 控制频率，避免单片机处理不过来 (单位: 秒)
             time.sleep(0.02)
         self.current_angles = target_angles

@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import time
 import config
-from core.ball_tracker import BallTracker
+from core.ball_pose_estimator import BallPoseEstimator
 from core.communicator import Communicator
 from core.servo_controller import ServoController
 
@@ -11,9 +11,9 @@ def main():
     comm = Communicator(config.SERIAL_PORT, config.BAUDRATE)
     servo = ServoController(comm)
     # 注意：BallTracker 还没生成 M 矩阵时，hand_eye_path 传 None
-    tracker = BallTracker("../calibrate_data/camera_params.npz",
-                          hand_eye_path=None,
-                          ball_radius=0.006)
+    tracker = BallPoseEstimator("../calibrate_data/camera_params.npz",
+                                hand_eye_path=None,
+                                ball_radius=0.006)
 
     cap = cv2.VideoCapture(0)
     # 稍微降低分辨率，减轻 macOS 扩展坞带宽压力

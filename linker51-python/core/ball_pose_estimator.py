@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-class BallTracker:
+class BallPoseEstimator:
     def __init__(self, params_path, hand_eye_path, ball_radius):
         """
         :param params_path: 标定文件路径 (.npz)
@@ -9,15 +9,15 @@ class BallTracker:
         """
         # 加载相机内参
         data = np.load(params_path)
-        self.mtx = data['mtx']
-        self.dist = data['dist']
-        self.fx = self.mtx[0, 0]
-        self.fy = self.mtx[1, 1]
-        self.cx = self.mtx[0, 2]
-        self.cy = self.mtx[1, 2]
+        self._mtx = data['mtx']
+        self._dist = data['dist']
+        self._fx = self._mtx[0, 0]
+        self._fy = self._mtx[1, 1]
+        self._cx = self._mtx[0, 2]
+        self._cy = self._mtx[1, 2]
 
-        self.ball_radius = ball_radius
-        self.ball_diameter = ball_radius * 2
+        self._ball_radius = ball_radius
+        self._ball_diameter = ball_radius * 2
 
         # 加载手眼变换矩阵
         if hand_eye_path is not None:
@@ -27,10 +27,33 @@ class BallTracker:
             print("注意：未加载手眼矩阵，camera_to_robot 功能将不可用")
 
         # 颜色范围配置 (黄色)
-        self.color_lower = np.array([20, 100, 100])
-        self.color_upper = np.array([40, 255, 255])
+        self._color_lower = np.array([20, 100, 100])
+        self._color_upper = np.array([40, 255, 255])
 
-    def camera_to_robot(self, x_c, y_c, z_c):
+    def get_robot_coords(self, frame):
+        """
+        输入图像，直接返回小球相对于机械臂的坐标 (x, y, z)
+        :return:
+            如果找到: (True, (x_rob, y_rob, z_rob), processed_frame)
+            如果没找: (False, None, processed_frame)
+        """
+        # 获取目标在相机坐标系下的坐标
+        found, x_c, y_c, z_c, processed_frame = self._process_image(frame)
+
+        if not found:
+            return False, None, processed_frame
+
+        # 转换为机械臂坐标系下的坐标
+        res_robot = self._camera_to_robot(x_c, y_c, z_c)
+
+        # 如果转换失败则返回空
+        if res_robot is None:
+            return False, None, processed_frame
+
+        # 返回最终结果
+        return True, res_robot, processed_frame
+
+    def _camera_to_robot(self, x_c, y_c, z_c):
         """
         相机坐标系 -> 机械臂坐标系
         """
@@ -40,9 +63,9 @@ class BallTracker:
         p_robot = self.M @ p_cam
         return p_robot[0], p_robot[1], p_robot[2]
 
-    def get_ball_coords(self, frame):
+    def _process_image(self, frame):
         """
-        识别图像中的球并返回 3D 坐标
+        识别图像中的球并返回其在相机坐标系下的3D 坐标
         :return: (found, x, y, z, processed_frame)
         """
         # 图像预处理
@@ -50,7 +73,7 @@ class BallTracker:
         hsv = cv2.cvtColor(gs_frame, cv2.COLOR_BGR2HSV)
 
         # 颜色掩膜
-        mask = cv2.inRange(hsv, self.color_lower, self.color_upper)
+        mask = cv2.inRange(hsv, self._color_lower, self._color_upper)
         mask = cv2.erode(mask, None, iterations=2)
         mask = cv2.dilate(mask, None, iterations=2)
 
@@ -66,11 +89,11 @@ class BallTracker:
                 # --- 计算 3D 坐标 ---
                 # 计算深度 Z (利用相似三角形: Z = (D * f) / d)
                 # d 是像素直径 (radius_pixel * 2)
-                z = (self.ball_diameter * self.fx) / (radius_pixel * 2)
+                z = (self._ball_diameter * self._fx) / (radius_pixel * 2)
 
                 # 计算 X 和 Y (利用小孔成像逆变换)
-                x = (u - self.cx) * z / self.fx
-                y = (v - self.cy) * z / self.fy
+                x = (u - self._cx) * z / self._fx
+                y = (v - self._cy) * z / self._fy
 
                 # 可视化绘制
                 cv2.circle(frame, (int(u), int(v)), int(radius_pixel), (0, 255, 255), 2)
