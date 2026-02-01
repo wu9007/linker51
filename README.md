@@ -22,27 +22,27 @@
   - 杜邦线（公对公 ￥7，公对母 ￥5）
 
 ## 软件部署
-#### 第一步：烧录固件
+### 第一步：烧录固件
 - 使用STC-ISP等烧录软件
 - 将main.c编译生成的HEX文件烧录到普中A2单片机
 
 > 说明：程序启用了10μs高精度定时器，用于生成平滑的PWM信号
 
-#### 第二步：配置Python环境
+### 第二步：配置Python环境
 确保已安装Python 3，然后执行：
 
 ```bash
 pip install -r requirements.txt
 ```
-第三步：配置文件调整
-- 编辑config.py文件，根据实际情况修改以下参数：
-  - SERIAL_PORT：设置串口号（Windows: "COM3"，Mac: "/dev/tty.usbserial-xxx"）
-  - 物理尺寸：填入实际测量的机械臂臂长
+### 第三步：配置文件调整
+编辑config.py文件，根据实际情况修改以下参数：
+- SERIAL_PORT：设置串口号（Windows: "COM3"，Mac: "/dev/tty.usbserial-xxx"）
+- 物理尺寸：填入实际测量的机械臂臂长
 
-#### 第四步：标定数据检查
-- 确保以下文件存在于calibrate_data/文件夹： 
-  - camera_params.npz（相机内参） 
-  - hand_eye_matrix.npy（手眼标定矩阵）
+### 第四步：标定数据检查
+确保以下文件存在于calibrate_data/文件夹： 
+- camera_params.npz（相机内参） 
+- hand_eye_matrix.npy（手眼标定矩阵）
 
 ## 运行项目
 在终端执行以下命令启动程序：
