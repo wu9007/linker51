@@ -3,6 +3,7 @@ import time
 import numpy as np
 import config
 from core.robot_config import RobotArmConfig
+from core.trajectory_planner import CriticalDampingFilter
 
 
 class ServoController:
@@ -21,9 +22,11 @@ class ServoController:
         # 设置初始角度
         self.home_angles = list(self.config.home_angles)
         self.current_angles = list(self.home_angles)
-        # 舵机映射范围
-        self.min_pos = self.config.servo_min_level
-        self.max_pos = self.config.servo_max_level
+        # 为 X, Y, Z 三个轴分别创建滤波器
+        # f_n = 2.0 (响应速度), dt = 0.03 (假设循环是 30fps)
+        self.filter_x = CriticalDampingFilter(f_n=2.0, dt=0.03)
+        self.filter_y = CriticalDampingFilter(f_n=2.0, dt=0.03)
+        self.filter_z = CriticalDampingFilter(f_n=2.0, dt=0.03)
 
     def track_target(self, target_xyz):
         """
@@ -31,21 +34,21 @@ class ServoController:
         :param target_xyz: 坐标
         :return: 角度
         """
-        # 解算角度（inverse_kinematics：返回逆运动学的变换矩阵）
-        target_angles = self.arm_chain.inverse_kinematics(
-            target_xyz,
-            initial_position=self.home_angles)
+        # 通过滤波器，将跳跃的原始坐标转化为平滑的当前指令坐标
+        smooth_x = self.filter_x.update(target_xyz[0])
+        smooth_y = self.filter_y.update(target_xyz[1])
+        smooth_z = self.filter_z.update(target_xyz[2])
+        smooth_target = [smooth_x, smooth_y, smooth_z]
 
-        # 生成角度插值路径（让动画变丝滑）
-        path = np.linspace(self.current_angles, target_angles, num=10)
-        for step_angles in path:
-            # 发送硬件指令
-            self._send_angles_to_servo(step_angles)
-            # 把控制权交还给调用者，并带出当前状态
-            yield step_angles
-            # 控制频率，避免单片机处理不过来 (单位: 秒)
-            time.sleep(0.02)
+        # 直接对平滑后的坐标进行逆解计算
+        target_angles = self.arm_chain.inverse_kinematics(
+            smooth_target,
+            initial_position=self.current_angles) # 使用当前角度作为迭代起点更好
+        # 发送给硬件
+        self._send_angles_to_servo(target_angles)
+        # 更新状态
         self.current_angles = target_angles
+        return target_angles
 
     def _send_angles_to_servo(self, angles):
         """
@@ -63,11 +66,18 @@ class ServoController:
 
     def _angle_to_level(self, rad):
         """
-        将角度转换成发送给舵机的指令
-        :param rad: 角度
-        :return: 舵机指令
+        将角度转换成单片机指令包之后发送给单片机，以驱动舵机旋转
+        :param rad: 角度数组
+        :return: 是否发送成功
+
         """
+        # 弧度转角度
         angle = np.degrees(rad)
-        span = self.max_pos - self.min_pos
-        level = self.min_pos + (angle / 180.0) * span
-        return int(max(self.min_pos-1, min(self.max_pos-1, round(level))))
+
+        # 映射公式：(当前角度 / 总角度180) * 总刻度跨度200 + 起始偏移50
+        level = config.PWM_MIN_BASE + (angle / 180.0) * config.PWM_SPAN
+
+        # 严格执行安全限位 (SERVO_MIN_VAL=60, SERVO_MAX_VAL=240)
+        final_level = int(max(config.SERVO_MIN_VAL, min(config.SERVO_MAX_VAL, round(level))))
+
+        return final_level

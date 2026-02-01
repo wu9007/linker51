@@ -7,10 +7,10 @@ sbit Servo_Pin_X = P1^1;
 sbit Servo_Pin_Y = P1^2;
 sbit Servo_Pin_Z = P1^3;
 
-u8 count = 0;
-u8 target_x = 5;
-u8 target_y = 5;
-u8 target_z = 5;
+u16 count = 0;
+u16 target_x = 150;
+u16 target_y = 150;
+u16 target_z = 150;
 
 void uart_init(u8 baud) {
     SCON = 0x50;
@@ -23,7 +23,7 @@ void uart_init(u8 baud) {
 void timer0_init(){
 	TMOD &=0xF0;
 	TMOD |=0x01;
-    TH0 = 0xFF; TL0 = 0xA4; // 0.1ms @ 11.0592MHz
+    TH0 = 0xFF; TL0 = 0xF6; // 0.01ms @ 11.0592MHz
     ET0 = 1; EA = 1; TR0 = 1;
 }
 
@@ -37,10 +37,10 @@ void main() {
 
 void timer0_isr() interrupt 1 {
     TH0 = 0xFF;
-    TL0 = 0xA4;
+    TL0 = 0xF6;
 
     count++;
-    if(count >= 200) {
+    if(count >= 2000) {
         count = 0;
     }
 
@@ -60,25 +60,20 @@ void uart() interrupt 4{
 		    if(receive_data == 0xFE){
 		        state = 1;
 		    }
-		} else if(state == 1){
-            if (receive_data < 5) receive_data = 5;
-            if (receive_data > 22) receive_data = 22;
-		    target_x = receive_data;
-		    state = 2;
-		} else if(state == 2){
-            if (receive_data < 5) receive_data = 5;
-            if (receive_data > 22) receive_data = 22;
-		    target_y = receive_data;
-		    state = 3;
-		} else if(state == 3){
-            if (receive_data < 5) receive_data = 5;
-            if (receive_data > 22) receive_data = 22;
-            target_z = receive_data;
-            state = 0;
+		} else {
+		    // 此时 receive_data 由 Python 发送，范围应在 60-240
+            if (receive_data < 60) receive_data = 60;
+            if (receive_data > 240) receive_data = 240;
+            if(state == 1){
+                target_x = receive_data;
+                state = 2;
+            } else if(state == 2){
+                target_y = receive_data;
+                state = 3;
+            } else if(state == 3){
+                target_z = receive_data;
+                state = 0;
+            }
 		}
-
-		SBUF = receive_data;
-		while(!TI);
-		TI=0;
 	}
 }

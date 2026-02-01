@@ -14,7 +14,7 @@ class RobotTrackingApp:
 
         # 频率控制参数
         self.last_logic_time = 0
-        self.logic_interval = 0.15
+        self.logic_interval = 0.03
 
         try:
             self.comm = Communicator(config.SERIAL_PORT, config.BAUDRATE)
@@ -105,11 +105,11 @@ class RobotTrackingApp:
             if 0.08 < rx < 0.35 and -0.20 < ry < 0.20:
                 print(f"Tracking -> XYZ: [{rx:.3f}, {ry:.3f}, {rz:.3f}]")
                 try:
-                    for step_angles in self.servo.track_target([rx, ry, rz]):
-                        if self.visualizer:
-                            self.visualizer.update(step_angles, target_xyz=robot_pos)
-                        # 保持 OpenCV 窗口活跃
-                        cv2.waitKey(1)
+                    # 调用 track_target，现在它直接返回平滑后的角度
+                    current_angles = self.servo.track_target([rx, ry, rz])
+                    # 更新可视化器
+                    if self.visualizer:
+                        self.visualizer.update(current_angles, target_xyz=robot_pos)
                 except Exception as e:
                     print(f"[Servo Error] 指令发送失败: {e}")
             else:

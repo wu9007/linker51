@@ -11,9 +11,6 @@ class RobotArmConfig:
     upper_arm_length: float = config.ARM_UPPER_ARM_LEN
     forearm_length: float = config.ARM_FOREARM_LEN
 
-    servo_min_level: int = config.SERVO_MIN_VAL
-    servo_max_level: int = config.SERVO_MAX_VAL
-
     # 初始姿态
     home_angles: tuple = (0, np.pi / 2, np.pi / 2, np.pi / 2, 0)
 
