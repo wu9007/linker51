@@ -64,6 +64,11 @@ class VisionVisualizer:
         cv2.putText(frame, f"X:{rp[0]:>5.3f} Y:{rp[1]:>5.3f} Z:{rp[2]:>5.3f}m", (15, 115),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.COLOR_ACCENT, 1)
 
+        # 在 visualizer.py 的 _draw_coords 或类似位置增加：
+        target_color_name = data.get('target_color_name', 'Unknown')
+        cv2.putText(frame, f"TARGET COLOR: {target_color_name.upper()}", (15, 180),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
+
     def _draw_servos(self, frame, angles):
         cv2.putText(frame, "SERVO Angles (B, S, E):", (15, 140),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.4, (180, 180, 180), 1)

@@ -4,3 +4,5 @@ numpy
 pyserial
 ikpy
 matplotlib
+openai
+flask

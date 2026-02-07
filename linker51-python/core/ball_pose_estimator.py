@@ -26,9 +26,15 @@ class BallPoseEstimator:
             self.M = None
             print("注意：未加载手眼矩阵，camera_to_robot 功能将不可用")
 
-        # 颜色范围配置 (黄色)
-        self._color_lower = np.array([20, 100, 100])
-        self._color_upper = np.array([40, 255, 255])
+        # 预设颜色库
+        self.color_presets = {
+            "yellow": (np.array([20, 100, 100]), np.array([40, 255, 255])),
+            "green":  (np.array([35, 43, 46]), np.array([77, 255, 255])),
+            "blue":   (np.array([100, 43, 46]), np.array([124, 255, 255])),
+            "red":    (np.array([0, 43, 46]), np.array([10, 255, 255])) # 简易红色
+        }
+        self.current_color_name = "yellow"
+        self._color_lower, self._color_upper = self.color_presets["yellow"]
 
     def get_robot_coords(self, frame):
         """
@@ -89,3 +95,11 @@ class BallPoseEstimator:
                 self.last_uv = (int(u), int(v), int(radius_pixel))
                 return True, np.array([x, y, z]), frame
         return False, None, frame
+
+    def set_target_color(self, color_name):
+        """动态切换追踪颜色"""
+        if color_name in self.color_presets:
+            self._color_lower, self._color_upper = self.color_presets[color_name]
+            self.current_color_name = color_name
+            return True
+        return False

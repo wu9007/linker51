@@ -3,13 +3,20 @@ import time
 import sys
 import config
 import numpy as np
-from core.visualizer import VisionVisualizer
+
+from api.robot_gateway import RobotApiServer
+from util.visualizer import VisionVisualizer
 from core.ball_pose_estimator import BallPoseEstimator
 from core.communicator import Communicator
 from core.servo_controller import ServoController
 
+app_instance = None
+
 class RobotTrackingApp:
     def __init__(self):
+        global app_instance
+        app_instance = self
+
         self.cap = None
         self.running = False
 
@@ -71,8 +78,9 @@ class RobotTrackingApp:
                     'cam_pos': p_cam,
                     'robot_pos': p_robot,
                     'servo_angles': np.degrees(self.servo.current_angles[1:4]).astype(int),
-                    'out_of_range': found and not (0.08 < p_robot[0] < 0.35), # 示例逻辑
-                    'uv': getattr(self.estimator, 'last_uv', None)
+                    'out_of_range': found and not (0.08 < p_robot[0] < 0.35),
+                    'uv': getattr(self.estimator, 'last_uv', None),
+                    'target_color_name': self.estimator.current_color_name
                 }
                 self.visualizer.draw_dashboard(processed_frame, status_snapshot)
 
@@ -120,5 +128,12 @@ class RobotTrackingApp:
         print("[Exit] 再见。")
 
 if __name__ == "__main__":
+    # 启动顺序
     app = RobotTrackingApp()
+
+    # 挂载网关
+    gateway = RobotApiServer(app)
+    gateway.start()
+
+    # 启动主程序
     app.run()
