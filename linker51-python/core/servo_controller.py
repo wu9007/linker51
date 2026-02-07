@@ -1,5 +1,3 @@
-import time
-
 import numpy as np
 import config
 from core.robot_config import RobotArmConfig
@@ -43,7 +41,7 @@ class ServoController:
         # 直接对平滑后的坐标进行逆解计算
         target_angles = self.arm_chain.inverse_kinematics(
             smooth_target,
-            initial_position=self.current_angles) # 使用当前角度作为迭代起点更好
+            initial_position=self.current_angles)
         # 发送给硬件
         self._send_angles_to_servo(target_angles)
         # 更新状态

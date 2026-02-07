@@ -2,7 +2,8 @@ import cv2
 import time
 import sys
 import config
-from core.visualizer import ArmVisualizer
+import numpy as np
+from core.visualizer import VisionVisualizer
 from core.ball_pose_estimator import BallPoseEstimator
 from core.communicator import Communicator
 from core.servo_controller import ServoController
@@ -19,6 +20,7 @@ class RobotTrackingApp:
         try:
             self.comm = Communicator(config.SERIAL_PORT, config.BAUDRATE)
             self.servo = ServoController(self.comm)
+            self.visualizer = VisionVisualizer()
 
             self.estimator = BallPoseEstimator(
                 params_path="calibrate_data/camera_params.npz",
@@ -28,13 +30,6 @@ class RobotTrackingApp:
         except Exception as e:
             print(f"[Fatal Error] 硬件初始化失败: {e}")
             sys.exit(1)
-
-        # 可视化开关
-        self.enable_viz = True
-        self.visualizer = None
-        # 如果开启可视化，并且机械臂已经初始化，则创建可视化器
-        if self.enable_viz and hasattr(self, 'servo'):
-            self.visualizer = ArmVisualizer(self.servo.arm_chain)
 
     def _setup_camera(self):
         # Mac 使用 CAP_AVFOUNDATION，其他系统可移除该参数
@@ -66,12 +61,21 @@ class RobotTrackingApp:
                     print("[Warn] 摄像头丢帧")
                     continue
 
-                found, robot_pos, processed_frame = self.estimator.get_robot_coords(frame)
+                found, p_cam, p_robot, processed_frame = self.estimator.get_robot_coords(frame)
 
                 # 机械臂控制
-                self._control_logic(found, robot_pos, processed_frame)
+                self._control_logic(found, p_robot)
 
-                # 显示
+                status_snapshot = {
+                    'found': found,
+                    'cam_pos': p_cam,
+                    'robot_pos': p_robot,
+                    'servo_angles': np.degrees(self.servo.current_angles[1:4]).astype(int),
+                    'out_of_range': found and not (0.08 < p_robot[0] < 0.35), # 示例逻辑
+                    'uv': getattr(self.estimator, 'last_uv', None)
+                }
+                self.visualizer.draw_dashboard(processed_frame, status_snapshot)
+
                 cv2.imshow("Robot Vision", processed_frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     self.running = False
@@ -89,33 +93,20 @@ class RobotTrackingApp:
             if self.cap.isOpened():
                 self.cap.grab()
 
-    def _control_logic(self, found, robot_pos, processed_frame):
+    def _control_logic(self, found, p_robot):
+        """
+        负责判断是否发送指令给机械臂
+        """
         current_time = time.time()
-
-        if not found:
-            cv2.putText(processed_frame, "Searching...", (20, 40),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-            return
-
-        # 如果找到了，检查时间间隔
-        if current_time - self.last_logic_time > self.logic_interval:
-            rx, ry, rz = robot_pos
-
-            # 安全范围检查
+        # 频率控制 + 状态判断
+        if found and (current_time - self.last_logic_time > self.logic_interval):
+            rx, ry, rz = p_robot
+            # 安全范围检查 (米)
             if 0.08 < rx < 0.35 and -0.20 < ry < 0.20:
-                print(f"Tracking -> XYZ: [{rx:.3f}, {ry:.3f}, {rz:.3f}]")
                 try:
-                    # 调用 track_target，现在它直接返回平滑后的角度
-                    current_angles = self.servo.track_target([rx, ry, rz])
-                    # 更新可视化器
-                    if self.visualizer:
-                        self.visualizer.update(current_angles, target_xyz=robot_pos)
+                    self.servo.track_target([rx, ry, rz])
                 except Exception as e:
                     print(f"[Servo Error] 指令发送失败: {e}")
-            else:
-                cv2.putText(processed_frame, "OUT OF RANGE", (20, 80),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-
             self.last_logic_time = current_time
 
     def _cleanup(self):
@@ -126,8 +117,6 @@ class RobotTrackingApp:
         if self.cap and self.cap.isOpened():
             self.cap.release()
         cv2.destroyAllWindows()
-        if self.visualizer:
-            self.visualizer.close()
         print("[Exit] 再见。")
 
 if __name__ == "__main__":

@@ -38,29 +38,28 @@ class BallPoseEstimator:
             如果没找: (False, None, processed_frame)
         """
         # 获取目标在相机坐标系下的坐标
-        found, x_c, y_c, z_c, processed_frame = self._process_image(frame)
+        found, p_cam, processed_frame = self._process_image(frame)
 
         if not found:
-            return False, None, processed_frame
+            return False, None, None, processed_frame
 
         # 转换为机械臂坐标系下的坐标
-        res_robot = self._camera_to_robot(x_c, y_c, z_c)
+        p_robot = self._camera_to_robot(p_cam)
 
         # 如果转换失败则返回空
-        if res_robot is None:
-            return False, None, processed_frame
+        if p_robot is None:
+            return False, None, None, processed_frame
 
         # 返回最终结果
-        return True, res_robot, processed_frame
+        return True, p_cam, p_robot, processed_frame
 
-    def _camera_to_robot(self, x_c, y_c, z_c):
+    def _camera_to_robot(self, p_cam):
         """
         相机坐标系 -> 机械臂坐标系
         """
         if self.M is None:
             return None
-        p_cam = np.array([x_c, y_c, z_c, 1.0])
-        p_robot = self.M @ p_cam
+        p_robot = self.M @ np.append(p_cam, 1.0)
         return p_robot[0], p_robot[1], p_robot[2]
 
     def _process_image(self, frame):
@@ -81,26 +80,12 @@ class BallPoseEstimator:
         cnts, _ = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         if len(cnts) > 0:
-            # 找到面积最大的轮廓
             c = max(cnts, key=cv2.contourArea)
             ((u, v), radius_pixel) = cv2.minEnclosingCircle(c)
-
-            if radius_pixel > 5:  # 过滤噪声
-                # --- 计算 3D 坐标 ---
-                # 计算深度 Z (利用相似三角形: Z = (D * f) / d)
-                # d 是像素直径 (radius_pixel * 2)
+            if radius_pixel > 5:
                 z = (self._ball_diameter * self._fx) / (radius_pixel * 2)
-
-                # 计算 X 和 Y (利用小孔成像逆变换)
                 x = (u - self._cx) * z / self._fx
                 y = (v - self._cy) * z / self._fy
-
-                # 可视化绘制
-                cv2.circle(frame, (int(u), int(v)), int(radius_pixel), (0, 255, 255), 2)
-                cv2.putText(frame, f"X:{x:.2f} Y:{y:.2f} Z:{z:.2f}m",
-                            (int(u - radius_pixel), int(v - radius_pixel - 10)),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-
-                return True, x, y, z, frame
-
-        return False, 0, 0, 0, frame
+                self.last_uv = (int(u), int(v), int(radius_pixel))
+                return True, np.array([x, y, z]), frame
+        return False, None, frame

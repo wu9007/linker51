@@ -1,58 +1,71 @@
-import matplotlib
-try:
-    matplotlib.use('TkAgg')
-except:
-    pass
+import cv2
 
-import matplotlib.pyplot as plt
-from ikpy.chain import Chain
+class VisionVisualizer:
+    def __init__(self):
+        # 定义颜色常量
+        self.COLOR_BG = (20, 20, 20)      # 深灰色背景
+        self.COLOR_TEXT = (255, 255, 255) # 白色文字
+        self.COLOR_ACCENT = (0, 255, 255) # 黄色高亮 (Robot系)
+        self.COLOR_SERVO = (150, 255, 150)# 浅绿色 (舵机)
+        self.COLOR_WARN = (0, 0, 255)     # 红色 (警告)
 
-class ArmVisualizer:
-    def __init__(self, arm_chain: Chain):
+    def draw_dashboard(self, frame, status_data):
         """
-        初始化可视化器
-        :param arm_chain: 机械臂的 IKPy Chain 对象（用于正运动学计算绘图）
+        绘制主仪表盘
+        :param frame: 原始图像帧
+        :param status_data: 包含所有状态的字典
         """
-        self.chain = arm_chain
+        # 绘制左侧半透明遮罩面板
+        overlay = frame.copy()
+        cv2.rectangle(overlay, (0, 0), (285, 200), self.COLOR_BG, -1)
+        cv2.addWeighted(overlay, 0.6, frame, 0.4, 0, frame)
 
-        # 开启交互模式，允许动态刷新
-        plt.ion()
+        # 绘制运行状态 (STATUS)
+        found = status_data.get('found', False)
+        status_text = "TRACKING" if found else "SEARCHING..."
+        status_col = (0, 255, 0) if found else (0, 165, 255)
+        cv2.putText(frame, f"STATUS: {status_text}", (15, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, status_col, 2)
 
-        # 创建画布和3D坐标系
-        self.fig = plt.figure(figsize=(10, 8))
-        self.ax = self.fig.add_subplot(111, projection='3d')
+        # 绘制坐标信息
+        self._draw_coords(frame, status_data)
 
-        # 窗口标题
-        self.fig.canvas.manager.set_window_title("Robot Arm Tracking Visualization")
+        # 绘制舵机信息
+        self._draw_servos(frame, status_data.get('servo_angles', [0,0,0]))
 
-    def update(self, angles, target_xyz=None):
-        """
-        刷新一帧画面
-        :param angles: 当前各关节角度
-        :param target_xyz: 目标点坐标 (x, y, z)，可选
-        """
-        # 清除上一帧
-        self.ax.clear()
+        # 绘制安全警报
+        if status_data.get('out_of_range', False):
+            cv2.putText(frame, "!! OUT OF REACH !!", (15, 185),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, self.COLOR_WARN, 2)
 
-        # 调用 ikpy 绘制机械臂姿态
-        self.chain.plot(angles, self.ax, target=target_xyz)
+        # 绘制目标标记 (在图像中画圆和准心)
+        uv_data = status_data.get('uv')
+        if found and uv_data is not None:
+            u, v, r = status_data['uv']
+            cv2.circle(frame, (u, v), r, self.COLOR_ACCENT, 2)
+            cv2.drawMarker(frame, (u, v), self.COLOR_ACCENT, cv2.MARKER_CROSS, 10, 1)
 
-        # 每次清除后必须重新设置坐标轴范围，否则画面会随着机械臂移动忽大忽小，看着很晕
-        self.ax.set_xlim(-0.3, 0.3)
-        self.ax.set_ylim(-0.3, 0.3) # 稍微调整了视野，你可以改回 (-0.1, 0.4)
-        self.ax.set_zlim(0, 0.4)
+    def _draw_coords(self, frame, data):
+        cp = data.get('cam_pos')
+        if cp is None: cp = (0.0, 0.0, 0.0)
 
-        # 设置标签
-        self.ax.set_xlabel("X (m)")
-        self.ax.set_ylabel("Y (m)")
-        self.ax.set_zlabel("Z (m)")
-        self.ax.set_title(f"Target: {target_xyz}" if target_xyz else "Robot Arm")
+        rp = data.get('robot_pos')
+        if rp is None: rp = (0.0, 0.0, 0.0)
 
-        # 刷新画布
-        plt.draw()
-        plt.pause(0.001) # 暂停极短时间让 GUI 线程处理渲染
+        # 相机系显示
+        cv2.putText(frame, "CAM Frame (Lens):", (15, 60),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (180, 180, 180), 1)
+        cv2.putText(frame, f"X:{cp[0]:>5.3f} Y:{cp[1]:>5.3f} Z:{cp[2]:>5.3f}m", (15, 75),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.COLOR_TEXT, 1)
 
-    def close(self):
-        """关闭窗口资源"""
-        plt.ioff()
-        plt.close(self.fig)
+        # 机器人系显示
+        cv2.putText(frame, "ROBOT Frame (Base):", (15, 100),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (180, 180, 180), 1)
+        cv2.putText(frame, f"X:{rp[0]:>5.3f} Y:{rp[1]:>5.3f} Z:{rp[2]:>5.3f}m", (15, 115),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.COLOR_ACCENT, 1)
+
+    def _draw_servos(self, frame, angles):
+        cv2.putText(frame, "SERVO Angles (B, S, E):", (15, 140),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (180, 180, 180), 1)
+        cv2.putText(frame, f"Degs: {angles[0]}, {angles[1]}, {angles[2]}", (15, 155),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.COLOR_SERVO, 1)
