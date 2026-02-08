@@ -42,7 +42,7 @@ def main():
         if not ret: break
 
         # 视觉识别
-        found, cx, cy, cz, res_frame = tracker.get_ball_coords(frame)
+        found, p_cam, res_frame = tracker.get_p_cam(frame)
 
         # 实时显示（仅显示，不在此处频繁调用 servo）
         cv2.imshow("Calibration Mode", res_frame)
@@ -66,17 +66,17 @@ def main():
 
         # 只有位置变化时才下发指令，避免串口堵塞
         if moved:
-            servo.track_target([curr_rx, curr_ry, curr_rz])
+            servo.track_target([curr_rx, curr_ry, curr_rz], False)
             print(f"机械臂移动至: X={curr_rx:.3f}, Y={curr_ry:.3f}, Z={curr_rz:.3f}")
             time.sleep(0.2)
 
         # --- 保存数据点 ---
         elif key == ord(' '):
             if found:
-                camera_data_list.append([cx, cy, cz])
+                camera_data_list.append(p_cam)
                 robot_data_list.append([curr_rx, curr_ry, curr_rz])
                 print(f"\n[SAVE] 已保存第 {len(camera_data_list)} 组点:")
-                print(f"  相机坐标系 (x,y,z): {[round(c, 4) for c in [cx, cy, cz]]}")
+                print(f"  相机坐标系 (x,y,z): {[round(c, 4) for c in p_cam]}")
                 print(f"  机械臂坐标系 (x,y,z): {[round(r, 4) for r in [curr_rx, curr_ry, curr_rz]]}")
             else:
                 print("\a警告：当前画面未检测到球，请调整后再保存！")

@@ -16,10 +16,10 @@ ARM_FOREARM_LEN = 0.12
 
 # --- 舵机底层映射基准 (由单片机定时器频率决定) ---
 # 对应 0.5ms - 2.5ms 的 10us 计数值
-PWM_MIN_BASE = 50   # 理论 0度
-PWM_MAX_BASE = 250  # 理论 180度
+PWM_MIN_BASE = 5   # 理论 0度
+PWM_MAX_BASE = 25  # 理论 180度
 PWM_SPAN = PWM_MAX_BASE - PWM_MIN_BASE
 
 # --- 舵机安全限制 ---
-SERVO_MIN_VAL = 60
-SERVO_MAX_VAL = 240
+SERVO_MIN_VAL = 6
+SERVO_MAX_VAL = 24

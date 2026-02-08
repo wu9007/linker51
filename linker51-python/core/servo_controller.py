@@ -26,21 +26,25 @@ class ServoController:
         self.filter_y = CriticalDampingFilter(f_n=2.0, dt=0.03)
         self.filter_z = CriticalDampingFilter(f_n=2.0, dt=0.03)
 
-    def track_target(self, target_xyz):
+    def track_target(self, target_xyz, use_filter=True):
         """
         让机械臂转动到指定坐标（坐标换->角度->单片机命令包）
+        :param use_filter: 是否启用滤波
         :param target_xyz: 坐标
         :return: 角度
         """
         # 通过滤波器，将跳跃的原始坐标转化为平滑的当前指令坐标
-        smooth_x = self.filter_x.update(target_xyz[0])
-        smooth_y = self.filter_y.update(target_xyz[1])
-        smooth_z = self.filter_z.update(target_xyz[2])
-        smooth_target = [smooth_x, smooth_y, smooth_z]
+        if use_filter:
+            smooth_x = self.filter_x.update(target_xyz[0])
+            smooth_y = self.filter_y.update(target_xyz[1])
+            smooth_z = self.filter_z.update(target_xyz[2])
+            target = [smooth_x, smooth_y, smooth_z]
+        else:
+            target = target_xyz
 
         # 直接对平滑后的坐标进行逆解计算
         target_angles = self.arm_chain.inverse_kinematics(
-            smooth_target,
+            target,
             initial_position=self.current_angles)
         # 发送给硬件
         self._send_angles_to_servo(target_angles)

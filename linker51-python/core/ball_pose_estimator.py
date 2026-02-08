@@ -44,7 +44,7 @@ class BallPoseEstimator:
             如果没找: (False, None, processed_frame)
         """
         # 获取目标在相机坐标系下的坐标
-        found, p_cam, processed_frame = self._process_image(frame)
+        found, p_cam, processed_frame = self.get_p_cam(frame)
 
         if not found:
             return False, None, None, processed_frame
@@ -59,19 +59,10 @@ class BallPoseEstimator:
         # 返回最终结果
         return True, p_cam, p_robot, processed_frame
 
-    def _camera_to_robot(self, p_cam):
-        """
-        相机坐标系 -> 机械臂坐标系
-        """
-        if self.M is None:
-            return None
-        p_robot = self.M @ np.append(p_cam, 1.0)
-        return p_robot[0], p_robot[1], p_robot[2]
-
-    def _process_image(self, frame):
+    def get_p_cam(self, frame):
         """
         识别图像中的球并返回其在相机坐标系下的3D 坐标
-        :return: (found, x, y, z, processed_frame)
+        :return: (found, p_cam, processed_frame)
         """
         # 图像预处理
         gs_frame = cv2.GaussianBlur(frame, (5, 5), 0)
@@ -92,9 +83,24 @@ class BallPoseEstimator:
                 z = (self._ball_diameter * self._fx) / (radius_pixel * 2)
                 x = (u - self._cx) * z / self._fx
                 y = (v - self._cy) * z / self._fy
-                self.last_uv = (int(u), int(v), int(radius_pixel))
+
+                # 可视化绘制
+                cv2.circle(frame, (int(u), int(v)), int(radius_pixel), (0, 255, 255), 2)
+                cv2.putText(frame, f"X:{x:.2f} Y:{y:.2f} Z:{z:.2f}m",
+                            (int(u - radius_pixel), int(v - radius_pixel - 10)),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+
                 return True, np.array([x, y, z]), frame
         return False, None, frame
+
+    def _camera_to_robot(self, p_cam):
+        """
+        相机坐标系 -> 机械臂坐标系
+        """
+        if self.M is None:
+            return None
+        p_robot = self.M @ np.append(p_cam, 1.0)
+        return p_robot[0], p_robot[1], p_robot[2]
 
     def set_target_color(self, color_name):
         """动态切换追踪颜色"""
