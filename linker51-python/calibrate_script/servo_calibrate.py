@@ -17,22 +17,17 @@ def main():
         print(f"已连接 {config.SERIAL_PORT}，开始校准...")
         time.sleep(2)  # 等待串口稳定
 
-        send_packet(ser, 22, 22, 22)
+        send_packet(ser, 10, 10, 10)
 
         print("等待 2 秒观察动作...")
         time.sleep(2)
 
-        send_packet(ser, 13, 13, 13)
+        send_packet(ser, 30, 30, 30)
 
         print("等待 2 秒观察动作...")
         time.sleep(2)
 
-        send_packet(ser, 5, 5, 5)
-
-        print("等待 2 秒观察动作...")
-        time.sleep(2)
-
-        send_packet(ser, 13, 13, 13)
+        send_packet(ser, 50, 50, 50)
     finally:
         if 'ser' in locals() and ser.is_open:
             ser.close()
