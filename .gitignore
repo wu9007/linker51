@@ -7,13 +7,11 @@
 .DS_Store
 Thumbs.db
 
-# --- linker51-java ---
-linker51-java/.gradle/
-linker51-java/build/
-linker51-java/out/
-linker51-java/bin/
-linker51-java/HELP.md
-!linker51-java/gradle/wrapper/gradle-wrapper.jar
+# --- linker51-python ---
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
 # --- linker51-mcu ---
 linker51-mcu/output/
