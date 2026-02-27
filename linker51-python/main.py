@@ -37,8 +37,11 @@ class RobotTrackingApp:
             self.visualizer = ArmVisualizer(self.servo.arm_chain)
 
     def _setup_camera(self):
-        # Mac 使用 CAP_AVFOUNDATION，其他系统可移除该参数
-        self.cap = cv2.VideoCapture(0, cv2.CAP_AVFOUNDATION)
+        # 自动识别系统，如果是Mac则使用AVFOUNDATION，否则默认
+        if sys.platform == "darwin": # Mac系统
+            self.cap = cv2.VideoCapture(0, cv2.CAP_AVFOUNDATION)
+        else: # Windows 或 Linux
+            self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
         if not self.cap.isOpened():
             raise IOError("无法打开摄像头设备")
