@@ -1,6 +1,7 @@
 # Linker51 机械臂
 本实验项目主要实现机械臂的单目视觉定位功能，通过图像识别确定目标物体并将其坐标同步至机器人坐标系，实现目标抓取。
 
+https://github.com/user-attachments/assets/9a3986e8-edd0-4460-9828-8dd0f50c3553
 ## 实验硬件清单
 > 总成本 ￥139
 - 执行器：
@@ -54,3 +55,6 @@ python main.py
 - 智能追踪：机械臂自动跟随小球运动
 - 运动平滑：采用临界阻尼算法，消除视觉跳变导致的抖动
 - 自然响应：机械臂运动流畅自然
+
+  
+<img width="3024" height="4032" alt="Image" src="https://github.com/user-attachments/assets/b5ab8045-7f58-4936-8de3-acd3f88f6f57" />
